@@ -3,18 +3,19 @@ info:
   version: 1.0.0
   title: SQL Query API
   description: |
-    提供SQL查询服务，支持MySQL数据库查询。
+    提供多数据库SQL查询服务，支持MySQL、Hive、Presto等数据库查询。
     可以直接返回查询结果或生成Markdown格式文件。
     
-    默认配置：
-    - 数据库类型：MySQL
-    - 输出格式：Markdown
-    - 认证方式：Bearer Token
+    支持功能：
+    - 多数据库配置和切换
+    - Markdown格式输出
+    - UTF-8编码支持
+    - Bearer Token认证
   license:
     name: MIT
 
 servers:
-  - url: http://localhost:6
+  - url: http://localhost:8090
     description: Development server
 
 paths:
@@ -23,7 +24,7 @@ paths:
       summary: 执行SQL查询
       description: |
         执行SQL查询并返回结果。
-        支持直接返回结果或生成Markdown文件。
+        支持多数据库查询，可直接返回结果或生成Markdown文件。
       operationId: executeQuery
       tags:
         - sql
@@ -36,17 +37,17 @@ paths:
             schema:
               type: object
               required:
+                - db_name
                 - sql
               properties:
-                type:
+                db_name:
                   type: string
-                  enum: [mysql]
-                  default: mysql
-                  description: 数据库类型（目前仅支持MySQL）
+                  description: 数据库配置别名
+                  example: "huya"
                 sql:
                   type: string
                   description: SQL查询语句
-                  example: "SELECT * FROM database_name.table_name LIMIT 5"
+                  example: "SELECT * FROM huyadata.cal_icr_ayyuid LIMIT 5"
                 output_type:
                   type: integer
                   enum: [0, 1]
@@ -56,14 +57,14 @@ paths:
               direct_output:
                 summary: 直接返回查询结果
                 value:
-                  type: "mysql"
-                  sql: "SELECT * FROM huyadata.table1 LIMIT 5"
+                  db_name: "huya"
+                  sql: "SELECT * FROM huyadata.cal_icr_ayyuid LIMIT 5"
                   output_type: 1
               file_output:
                 summary: 生成Markdown文件
                 value:
-                  type: "mysql"
-                  sql: "SELECT * FROM huyadata.table1 LIMIT 5"
+                  db_name: "huya"
+                  sql: "SELECT * FROM huyadata.cal_icr_ayyuid LIMIT 5"
                   output_type: 0
       responses:
         '200':
@@ -80,7 +81,7 @@ paths:
                     description: 操作是否成功
                   result:
                     type: string
-                    description: 当output_type=1时，返回查询结果
+                    description: 当output_type=1时，返回查询结果（Markdown格式）
                   result_id:
                     type: string
                     description: 当output_type=0时，返回文件ID
@@ -136,16 +137,8 @@ paths:
                   status:
                     type: string
                     enum: [healthy]
-                  services:
-                    type: object
-                    properties:
-                      sql:
-                        type: string
-                        enum: [ok]
               example:
                 status: "healthy"
-                services:
-                  sql: "ok"
 
 components:
   securitySchemes:
@@ -160,7 +153,6 @@ components:
       required:
         - success
         - error
-        - error_type
       properties:
         success:
           type: boolean
@@ -169,8 +161,4 @@ components:
         error:
           type: string
           description: 错误信息
-          example: "Invalid SQL statement"
-        error_type:
-          type: string
-          description: 错误类型
-          example: "DatabaseError" 
+          example: "Database config 'unknown_db' not found" 

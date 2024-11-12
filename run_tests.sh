@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # 等待服务启动
 echo "Waiting for services to start..."

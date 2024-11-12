@@ -1,51 +1,50 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
-from fastapi.responses import JSONResponse
 from typing import Optional
 import os
-import time
+import json
 from database import DatabaseManager
-from utils import generate_file_id, save_result_to_file
-from dotenv import load_dotenv
-
-load_dotenv()
+from utils import format_result, save_result_to_file
+from pydantic import BaseModel
 
 app = FastAPI()
 
-# 验证 API Key
-async def verify_api_key(authorization: str = Header(None)):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing API key")
-    
-    scheme, token = authorization.split()
-    if scheme.lower() != 'bearer':
-        raise HTTPException(status_code=401, detail="Invalid authentication scheme")
-    
-    if token != os.getenv('API_KEY'):
+# 从环境变量获取数据库配置
+database_configs = os.getenv("DATABASE_CONFIGS", "{}")
+db_manager = DatabaseManager(database_configs)
+
+class QueryRequest(BaseModel):
+    db_name: str
+    sql: str
+    output_type: int = 0  # 0: 生成文件, 1: 直接返回结果
+
+async def verify_token(authorization: str = Header(...)):
+    """验证API Token"""
+    api_key = os.getenv("API_KEY")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    token = authorization.split(" ")[1]
+    if token != api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
     return token
 
 @app.post("/sql/query")
-async def query_sql(
-    request: dict,
-    api_key: str = Depends(verify_api_key)
-):
+async def query_sql(request: QueryRequest, token: str = Depends(verify_token)):
+    """执行SQL查询
+    
+    Args:
+        request: 包含db_name、sql和output_type的请求体
+        token: API认证token
+    
+    Returns:
+        查询结果或文件ID
+    """
     try:
-        db_type = request.get("type", "mysql")
-        sql = request.get("sql")
-        output_type = request.get("output_type", 0)
-
-        if not sql:
-            raise HTTPException(status_code=400, detail="SQL query is required")
-
-        db_manager = DatabaseManager()
-        result = db_manager.execute_query(db_type, sql)
-
-        if output_type == 0:
+        columns, rows = db_manager.execute_query(request.db_name, request.sql)
+        
+        if request.output_type == 0:
             # 生成文件并返回文件ID
-            file_id = generate_file_id()
-            file_path = save_result_to_file(result, file_id)
-            
+            result_str = format_result(columns, rows)
+            file_id = save_result_to_file(result_str)
             return {
                 "success": True,
                 "result_id": file_id,
@@ -55,24 +54,18 @@ async def query_sql(
             # 直接返回查询结果
             return {
                 "success": True,
-                "result": result
+                "result": format_result(columns, rows)
             }
-
+            
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error": str(e),
-                "error_type": type(e).__name__
-            }
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "services": {
-            "sql": "ok"
-        }
-    } 
+    """健康检查接口"""
+    return {"status": "healthy"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """应用关闭时清理资源"""
+    db_manager.close_all()
