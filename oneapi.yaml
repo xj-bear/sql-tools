@@ -1,0 +1,235 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Cardmaker API
+  description: |
+    将文本内容转换为精美的卡片图片。
+    支持Markdown语法，可自定义样式和布局。
+    
+    默认配置：
+    - 模板：tempB
+    - 颜色：dark-color-2
+    - 显示：标题、内容、作者、日期
+  license:
+    name: JASON
+
+servers:
+  - url: http://49.65.98.94:3004
+    description: Production server
+
+paths:
+  /api/generate:
+    post:
+      summary: 生成文本卡片图片
+      description: |
+        将输入的文本内容转换为精美的卡片图片。
+        支持Markdown语法，可以设置标题、作者、日期等信息。
+      operationId: generateCard
+      tags:
+        - card
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                temp:
+                  type: string
+                  enum: [tempB]
+                  default: tempB
+                  description: 卡片模板类型（默认：tempB）
+                color:
+                  type: string
+                  enum: [dark-color-2]
+                  default: dark-color-2
+                  description: 卡片颜色主题（默认：dark-color-2）
+                icon:
+                  type: string
+                  description: 图标URL地址（可选）
+                  example: "https://avatars.githubusercontent.com/u/1680273?v=4"
+                title:
+                  type: string
+                  description: 卡片标题（默认：AI生成的卡片）
+                  default: "AI生成的卡片"
+                date:
+                  type: string
+                  description: 显示的日期（默认：当前日期）
+                  default: "2024/3/15 14:41"
+                content:
+                  type: string
+                  description: 卡片正文内容（支持Markdown语法）
+                  example: "这是一个完整功能测试卡片，包含了所有可选参数。支持**Markdown**语法。\n\n- 列表项1\n- 列表项2\n\n### 标题3\n\n正文内容"
+                foreword:
+                  type: string
+                  description: 卡片前言（可选）
+                  default: "卡片前言"
+                author:
+                  type: string
+                  description: 作者名称（默认：AI助手）
+                  default: "AI助手"
+                qrcodetitle:
+                  type: string
+                  description: 二维码标题（可选）
+                  default: "扫码关注"
+                qrcodetext:
+                  type: string
+                  description: 二维码描述文本（可选）
+                  default: "欢迎关注"
+                qrcode:
+                  type: string
+                  description: 二维码链接（可选）
+                  default: "https://fireflycard.shushiai.com/"
+                watermark:
+                  type: string
+                  description: 水印文本（可选）
+                  default: "Firefly Card"
+                useLoadingFont:
+                  type: string
+                  description: 是否载入字体
+                  default: false
+                useFont:
+                  type: string
+                  description: 字体设置，可选
+                  enum: [MiSans-Light, MiSans-Regular, MiSans-Medium, MiSans-Bold]
+                  default: "MiSans-Light,"
+                showIcon:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示图标
+                showForeword:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "false"
+                  description: 是否显示前言
+                showDate:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示日期
+                showTitle:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示标题
+                showContent:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示内容
+                showAuthor:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示作者
+                showTextCount:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "false"
+                  description: 是否显示字数统计
+                showQRCode:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否显示二维码
+                width:
+                  type: string
+                  description: 卡片宽度（默认：340px）
+                  default: "340px"
+                  example: "340px"
+                fontScale:
+                  type: string
+                  description: 文字大小比例（默认：1.2，范围：0.8-2.0）
+                  default: "1.2"
+                  example: "1.2"
+                isContentHtml:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: 是否使用HTML解析（true：使用HTML解析，false：使用Markdown解析）
+            examples:
+              minimal:
+                summary: 最简单的调用
+                value:
+                  content: "这是一段测试文本"
+              complete:
+                summary: 完整功能调用
+                value:
+                  temp: "tempB"
+                  color: "dark-color-2"
+                  icon: "https://avatars.githubusercontent.com/u/1680273?v=4"
+                  title: "完整功能测试卡片"
+                  date: "2024/3/15 14:41"
+                  content: "这是一个完整功能测试卡片，包含了所有可选参数。支持**Markdown**语法。\n\n- 列表项1\n- 列表项2\n\n### 标题3\n\n正文内容"
+                  foreword: "卡片前言"
+                  author: "测试用户"
+                  qrcodetitle: "扫码关注"
+                  qrcodetext: "欢迎关注测试账号"
+                  qrcode: "https://fireflycard.shushiai.com/"
+                  watermark: "Firefly Card"
+                  width: "340px"
+                  fontScale: "1.2"
+                  isContentHtml: "true"
+                  showIcon: "true"
+                  showForeword: "false"
+                  showDate: "true"
+                  showTitle: "true"
+                  showContent: "true"
+                  showAuthor: "true"
+                  showTextCount: "false"
+                  showQRCode: "true"
+      responses:
+        '200':
+          description: 成功生成卡片图片
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - url
+                properties:
+                  success:
+                    type: boolean
+                    description: 操作是否成功
+                  url:
+                    type: string
+                    description: 生成的图片URL
+                    example: "http://49.65.98.94:3004/images/550e8400-e29b-41d4-a716-446655440000.png"
+              example:
+                success: true
+                url: "http://49.65.98.94:3004/images/550e8400-e29b-41d4-a716-446655440000.png"
+        '401':
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 请在Authorization header中提供Bearer token
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: 错误信息

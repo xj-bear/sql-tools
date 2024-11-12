@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  plugin-services:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    networks:
+      - plugin_net
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./swagger.html:/app/swagger/swagger.html
+      - ./sql_plugin.yaml:/app/swagger/sql_plugin.yaml
+    environment:
+      - API_KEY=${API_KEY}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - PRESTO_HOST=${PRESTO_HOST}
+      - PRESTO_PORT=${PRESTO_PORT}
+      - PRESTO_USER=${PRESTO_USER}
+      - PRESTO_CATALOG=${PRESTO_CATALOG}
+      - PRESTO_SCHEMA=${PRESTO_SCHEMA}
+      - HIVE_HOST=${HIVE_HOST}
+      - HIVE_PORT=${HIVE_PORT}
+      - HIVE_USER=${HIVE_USER}
+      - FILE_EXPIRY_HOURS=${FILE_EXPIRY_HOURS}
+      - WORKERS=${WORKERS}
+      - THREADS=${THREADS}
+      - TIMEOUT=${TIMEOUT}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nginx:
+    image: nginx:alpine
+    networks:
+      - plugin_net
+    ports:
+      - "0.0.0.0:6:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./data:/data
+      - ./swagger.html:/app/swagger/swagger.html
+      - ./sql_plugin.yaml:/app/swagger/sql_plugin.yaml
+    depends_on:
+      plugin-services:
+        condition: service_healthy
+    restart: always
+
+  test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    networks:
+      - plugin_net
+    environment:
+      - API_KEY=${API_KEY}
+      - TEST_HOST=nginx
+      - TEST_PORT=80
+    depends_on:
+      nginx:
+        condition: service_started
+    command: ["python", "-m", "pytest", "tests/", "-v"]
+
+networks:
+  plugin_net:
+    driver: bridge

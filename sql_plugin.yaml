@@ -1,0 +1,176 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: SQL Query API
+  description: |
+    提供SQL查询服务，支持MySQL数据库查询。
+    可以直接返回查询结果或生成Markdown格式文件。
+    
+    默认配置：
+    - 数据库类型：MySQL
+    - 输出格式：Markdown
+    - 认证方式：Bearer Token
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:6
+    description: Development server
+
+paths:
+  /sql/query:
+    post:
+      summary: 执行SQL查询
+      description: |
+        执行SQL查询并返回结果。
+        支持直接返回结果或生成Markdown文件。
+      operationId: executeQuery
+      tags:
+        - sql
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sql
+              properties:
+                type:
+                  type: string
+                  enum: [mysql]
+                  default: mysql
+                  description: 数据库类型（目前仅支持MySQL）
+                sql:
+                  type: string
+                  description: SQL查询语句
+                  example: "SELECT * FROM database_name.table_name LIMIT 5"
+                output_type:
+                  type: integer
+                  enum: [0, 1]
+                  default: 0
+                  description: 输出类型（0：生成文件，1：直接返回结果）
+            examples:
+              direct_output:
+                summary: 直接返回查询结果
+                value:
+                  type: "mysql"
+                  sql: "SELECT * FROM huyadata.table1 LIMIT 5"
+                  output_type: 1
+              file_output:
+                summary: 生成Markdown文件
+                value:
+                  type: "mysql"
+                  sql: "SELECT * FROM huyadata.table1 LIMIT 5"
+                  output_type: 0
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+                    description: 操作是否成功
+                  result:
+                    type: string
+                    description: 当output_type=1时，返回查询结果
+                  result_id:
+                    type: string
+                    description: 当output_type=0时，返回文件ID
+                  preview_url:
+                    type: string
+                    description: 当output_type=0时，返回预览URL
+              examples:
+                direct_result:
+                  summary: 直接返回结果示例
+                  value:
+                    success: true
+                    result: "| id | name | value |\n|---|------|-------|\n| 1 | test | 100 |"
+                file_result:
+                  summary: 文件输出示例
+                  value:
+                    success: true
+                    result_id: "1730946789"
+                    preview_url: "/sql/preview/1730946789.md"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '401':
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /health:
+    get:
+      summary: 健康检查
+      description: 检查服务是否正常运行
+      operationId: healthCheck
+      tags:
+        - system
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  services:
+                    type: object
+                    properties:
+                      sql:
+                        type: string
+                        enum: [ok]
+              example:
+                status: "healthy"
+                services:
+                  sql: "ok"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 请在Authorization header中提供Bearer token
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - success
+        - error
+        - error_type
+      properties:
+        success:
+          type: boolean
+          description: 操作是否成功
+          example: false
+        error:
+          type: string
+          description: 错误信息
+          example: "Invalid SQL statement"
+        error_type:
+          type: string
+          description: 错误类型
+          example: "DatabaseError" 
