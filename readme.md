@@ -1,4 +1,4 @@
-# SQL Plugin Service v1.2
+# SQL Plugin Service v0.2
 
 这是一个支持多数据库查询的Docker服务，可以独立运行或集成到Dify中使用。
 
@@ -14,13 +14,13 @@
 - Bearer Token认证
 
 ## 版本更新
-### v1.2
+### v0.2
 - 新增多种输出格式支持（CSV、JSON）
 - 优化输出类型命名规范
 - 改进日期时间类型处理
 - 增强中文编码支持
 
-### v1.1
+### v0.1
 - 初始版本发布
 - 支持基础SQL查询功能
 - Markdown格式输出支持
