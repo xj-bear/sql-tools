@@ -5,8 +5,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-      args:
-        BUILDKIT_INLINE_CACHE: 0
     networks:
       - plugin_net
       - docker_default
@@ -23,6 +21,7 @@ services:
       - WORKERS=${WORKERS}
       - THREADS=${THREADS}
       - TIMEOUT=${TIMEOUT}
+      - ALLOWED_OUTPUT_TYPES=file_md,file_csv,out_md,out_json
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

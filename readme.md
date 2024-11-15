@@ -1,4 +1,4 @@
-# SQL Plugin Service
+# SQL Plugin Service v1.2
 
 这是一个支持多数据库查询的Docker服务，可以独立运行或集成到Dify中使用。
 
@@ -6,9 +6,24 @@
 - 支持多数据库配置(MySQL/MariaDB、Presto、Hive)
 - 支持通过数据库别名切换不同数据库
 - 提供SQL查询和结果导出功能
-- 支持结果格式化为Markdown表格
+- 支持多种输出格式：
+  - Markdown表格（file_md, out_md）
+  - CSV文件（file_csv）
+  - JSON格式（out_json）
 - UTF-8编码支持
 - Bearer Token认证
+
+## 版本更新
+### v1.2
+- 新增多种输出格式支持（CSV、JSON）
+- 优化输出类型命名规范
+- 改进日期时间类型处理
+- 增强中文编码支持
+
+### v1.1
+- 初始版本发布
+- 支持基础SQL查询功能
+- Markdown格式输出支持
 
 ## 配置说明
 
@@ -19,22 +34,15 @@
 API_KEY=your_api_key
 
 # 数据库配置(JSON格式)
-DATABASE_CONFIGS={
-    "prod": {
-        "type": "mysql",
-        "host": "host1",
-        "port": 3306,
-        "user": "user1",
-        "password": "pass1"
-    },
-    "test": {
-        "type": "mysql",
-        "host": "host2",
-        "port": 3306,
-        "user": "user2",
-        "password": "pass2"
-    }
-}
+DATABASE_CONFIGS='{
+  "prod": {
+    "type": "mysql",
+    "host": "host1",
+    "port": 3306,
+    "user": "user1",
+    "password": "pass1"
+  }
+}'
 
 # 其他配置
 FILE_EXPIRY_HOURS=48  # 文件过期时间
@@ -49,20 +57,17 @@ TIMEOUT=120          # 超时时间(秒)
 从外部系统访问服务时使用 `http://localhost:8090`
 
 ```bash
-# curl示例
+# curl示例 - JSON输出
 curl -X POST http://localhost:8090/sql/query \
      -H "Authorization: Bearer your_api_key" \
      -H "Content-Type: application/json" \
      -d '{
          "db_name": "prod",
          "sql": "SELECT * FROM table LIMIT 5",
-         "output_type": 0
+         "output_type": "out_json"
      }'
 
-# PowerShell示例
-$API_KEY = "your_api_key"
-$BASE_URL = "http://localhost:8090"
-
+# PowerShell示例 - CSV文件输出
 $headers = @{
     "Authorization" = "Bearer $API_KEY"
     "Content-Type" = "application/json"
@@ -71,7 +76,7 @@ $headers = @{
 $body = @{
     "db_name" = "prod"
     "sql" = "SELECT * FROM table LIMIT 5"
-    "output_type" = 1
+    "output_type" = "file_csv"
 } | ConvertTo-Json
 
 $response = Invoke-RestMethod `
@@ -88,7 +93,7 @@ $response = Invoke-RestMethod `
 # Dify插件示例
 import requests
 
-def query_sql(db_name: str, sql: str, output_type: int = 1):
+def query_sql(db_name: str, sql: str, output_type: str = "out_json"):
     response = requests.post(
         "http://plugin-services:8000/sql/query",
         headers={
@@ -110,18 +115,28 @@ def query_sql(db_name: str, sql: str, output_type: int = 1):
 - `db_name`: 数据库配置别名（在DATABASE_CONFIGS中定义）
 - `sql`: SQL查询语句
 - `output_type`: 输出类型
-  - 0: 生成Markdown文件并返回文件ID
-  - 1: 直接返回查询结果
+  - `file_md`: 生成Markdown文件
+  - `file_csv`: 生成CSV文件
+  - `out_md`: 直接返回Markdown格式结果
+  - `out_json`: 直接返回JSON格式结果
 
 #### 响应格式
 ```json
-// 直接返回结果 (output_type=1)
+// JSON直接输出 (output_type=out_json)
 {
     "success": true,
-    "result": "| id | name |\n|---|---|\n| 1 | test |"
+    "result": [
+        {"id": 1, "name": "test", "created_at": "2023-12-01T10:00:00"}
+    ]
 }
 
-// 生成文件 (output_type=0)
+// Markdown直接输出 (output_type=out_md)
+{
+    "success": true,
+    "result": "| id | name | created_at |\n|---|------|------------|\n| 1 | test | 2023-12-01 |"
+}
+
+// 文件输出 (output_type=file_md/file_csv)
 {
     "success": true,
     "result_id": "1730946789",
@@ -179,9 +194,11 @@ docker-compose logs -f plugin-services
 - 认证失败：检查API_KEY配置
 - 数据库连接失败：检查DATABASE_CONFIGS配置
 - 中文乱码：确认数据库和程序使用UTF-8编码
+- JSON序列化错误：检查数据类型兼容性
 
 ## 安全建议
 1. 修改默认API_KEY
 2. 限制数据库用户权限
 3. 使用网络隔离
 4. 定期更新依赖包
+5. 注意敏感数据处理

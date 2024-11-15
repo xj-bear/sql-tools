@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from typing import Optional
 import os
-import json
+from enum import Enum
 from database import DatabaseManager
-from utils import format_result, save_result_to_file
+from utils import format_result, save_result_to_file, get_preview_url
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -12,10 +12,16 @@ app = FastAPI()
 database_configs = os.getenv("DATABASE_CONFIGS", "{}")
 db_manager = DatabaseManager(database_configs)
 
+class OutputType(str, Enum):
+    file_md = "file_md"
+    file_csv = "file_csv"
+    out_md = "out_md"
+    out_json = "out_json"
+
 class QueryRequest(BaseModel):
     db_name: str
     sql: str
-    output_type: int = 0  # 0: 生成文件, 1: 直接返回结果
+    output_type: OutputType = OutputType.out_md
 
 async def verify_token(authorization: str = Header(...)):
     """验证API Token"""
@@ -41,23 +47,27 @@ async def query_sql(request: QueryRequest, token: str = Depends(verify_token)):
     try:
         columns, rows = db_manager.execute_query(request.db_name, request.sql)
         
-        if request.output_type == 0:
+        # 格式化结果
+        result_str = format_result(columns, rows, request.output_type)
+        
+        if request.output_type.startswith('file_'):
             # 生成文件并返回文件ID
-            result_str = format_result(columns, rows)
-            file_id = save_result_to_file(result_str)
+            file_id = save_result_to_file(result_str, request.output_type)
             return {
                 "success": True,
                 "result_id": file_id,
-                "preview_url": f"/sql/preview/{file_id}.md"
+                "preview_url": get_preview_url(file_id, request.output_type)
             }
         else:
             # 直接返回查询结果
             return {
                 "success": True,
-                "result": format_result(columns, rows)
+                "result": result_str,
+                "result_type": request.output_type
             }
             
     except Exception as e:
+        print(f"Error in query_sql: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
