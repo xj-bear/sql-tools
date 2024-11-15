@@ -34,15 +34,8 @@
 API_KEY=your_api_key
 
 # 数据库配置(JSON格式)
-DATABASE_CONFIGS='{
-  "prod": {
-    "type": "mysql",
-    "host": "host1",
-    "port": 3306,
-    "user": "user1",
-    "password": "pass1"
-  }
-}'
+DATABASE_CONFIGS='{"prod": {"type": "mysql", "host": "host1", "port": 3306, "user": "user1", "password": "pass1"}}'
+
 
 # 其他配置
 FILE_EXPIRY_HOURS=48  # 文件过期时间
