@@ -2,9 +2,11 @@ version: '3'
 
 services:
   plugin-services:
+    image: sql-plugin-services:latest
     build:
       context: .
       dockerfile: docker/Dockerfile
+      no_cache: true
     networks:
       - plugin_net
       - docker_default
@@ -36,7 +38,7 @@ services:
       - plugin_net
       - docker_default
     ports:
-      - "0.0.0.0:6:80"
+      - "0.0.0.0:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./data:/data

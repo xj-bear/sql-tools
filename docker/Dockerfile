@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9-slim-buster
 
 WORKDIR /app
 
@@ -13,23 +13,26 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 创建必要的目录
-RUN mkdir -p /app/data /app/swagger
-
-# 复制并安装依赖
+# 复制依赖文件
 COPY requirements.txt .
+
+# 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt \
     && rm -rf ~/.cache/pip/*
+
+# 创建必要的目录
+RUN mkdir -p /app/data /app/swagger
 
 # 复制应用代码
 COPY app/database.py app/main.py app/utils.py ./
 
-# 设置 PYTHONPATH
-ENV PYTHONPATH=/app
+# 设置环境变量
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1
 
 # 创建非root用户
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser \
+    && chown -R appuser:appuser /app
 USER appuser
 
 # 暴露端口

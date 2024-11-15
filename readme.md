@@ -1,4 +1,4 @@
-# SQL Plugin Service v1.2
+# SQL Plugin Service v0.2
 
 这是一个支持多数据库查询的Docker服务，可以独立运行或集成到Dify中使用。
 
@@ -12,18 +12,50 @@
   - JSON格式（out_json）
 - UTF-8编码支持
 - Bearer Token认证
+- 自动重连和连接池管理
+- 健康检查和错误重试
 
 ## 版本更新
-### v1.2
+### v0.2
 - 新增多种输出格式支持（CSV、JSON）
 - 优化输出类型命名规范
 - 改进日期时间类型处理
 - 增强中文编码支持
+- 添加数据库连接池管理
+- 实现自动重连机制
 
-### v1.1
+### v0.1
 - 初始版本发布
 - 支持基础SQL查询功能
 - Markdown格式输出支持
+
+## 快速开始
+
+### 1. 克隆项目
+```bash
+git clone https://github.com/xj-bear/sql-tools.git
+cd sql-tools
+```
+
+### 2. 配置环境
+```bash
+# 复制环境配置模板
+cp .env.example .env
+
+# 编辑 .env 文件，填入实际配置
+vim .env
+```
+
+### 3. 构建和启动
+```bash
+# 方式1：使用预构建镜像
+docker-compose pull
+docker-compose up -d
+
+# 方式2：本地构建
+docker-compose build --no-cache
+docker-compose up -d
+```
 
 ## 配置说明
 
@@ -34,8 +66,7 @@
 API_KEY=your_api_key
 
 # 数据库配置(JSON格式)
-DATABASE_CONFIGS='{"prod": {"type": "mysql", "host": "host1", "port": 3306, "user": "user1", "password": "pass1"}}'
-
+DATABASE_CONFIGS='{"prod":{"type":"mysql","host":"host1","port":3306,"user":"user1","password":"pass1"}}'
 
 # 其他配置
 FILE_EXPIRY_HOURS=48  # 文件过期时间
@@ -102,45 +133,18 @@ def query_sql(db_name: str, sql: str, output_type: str = "out_json"):
     return response.json()
 ```
 
-### 3. API参数说明
-
-#### 请求参数
-- `db_name`: 数据库配置别名（在DATABASE_CONFIGS中定义）
-- `sql`: SQL查询语句
-- `output_type`: 输出类型
-  - `file_md`: 生成Markdown文件
-  - `file_csv`: 生成CSV文件
-  - `out_md`: 直接返回Markdown格式结果
-  - `out_json`: 直接返回JSON格式结果
-
-#### 响应格式
-```json
-// JSON直接输出 (output_type=out_json)
-{
-    "success": true,
-    "result": [
-        {"id": 1, "name": "test", "created_at": "2023-12-01T10:00:00"}
-    ]
-}
-
-// Markdown直接输出 (output_type=out_md)
-{
-    "success": true,
-    "result": "| id | name | created_at |\n|---|------|------------|\n| 1 | test | 2023-12-01 |"
-}
-
-// 文件输出 (output_type=file_md/file_csv)
-{
-    "success": true,
-    "result_id": "1730946789",
-    "preview_url": "/sql/preview/1730946789.md"
-}
-```
-
 ## 部署说明
 
 ### 1. 独立部署
 ```bash
+# 克隆项目
+git clone https://github.com/xj-bear/sql-tools.git
+cd sql-tools
+
+# 配置环境
+cp .env.example .env
+vim .env  # 编辑配置文件
+
 # 启动服务
 docker-compose up -d
 
@@ -164,7 +168,6 @@ services:
 ## 网络说明
 - 外部访问: `http://localhost:8090`
 - Dify内部访问: `http://plugin-services:8000`
-- Nginx代理访问: `http://localhost:6`
 
 ## 故障排查
 1. 检查服务状态
@@ -188,6 +191,7 @@ docker-compose logs -f plugin-services
 - 数据库连接失败：检查DATABASE_CONFIGS配置
 - 中文乱码：确认数据库和程序使用UTF-8编码
 - JSON序列化错误：检查数据类型兼容性
+- 连接断开：服务会自动重连，如果持续失败请检查数据库状态
 
 ## 安全建议
 1. 修改默认API_KEY
